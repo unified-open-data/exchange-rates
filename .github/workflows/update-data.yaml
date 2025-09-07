@@ -1,0 +1,39 @@
+name: Fetch Exchange Rates
+
+on:
+  schedule:
+    - cron: "0 * * * *" # every hour
+  workflow_dispatch:
+
+jobs:
+  fetch-rates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+
+      - name: Checkout script repo
+        uses: actions/checkout@v4
+        with:
+          repository: unified-open-data/scripts
+          path: external-scripts
+          token: ${{ secrets.GH_PAT }} # only if private
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fetch exchange rate
+        env:
+          APP_ID: ${{ secrets.OPENEXCHANGERATES_APP_ID }}
+        run: node external-scripts/scripts/exchange-rates.js
+
+      - name: Commit and push data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git commit -m "chore: add exchange rate data [skip ci]" || echo "No changes"
+          git push
+
